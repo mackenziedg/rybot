@@ -5,4 +5,5 @@ if ! [ -d "./rybot_env" ]
 	   virtualenv rybot_env -p python3
 fi
 
+source ./rybot_env/bin/activate
 pip3 install -r requirements.txt
