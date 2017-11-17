@@ -1,6 +1,7 @@
 import os
 import time
 from slackclient import SlackClient
+import praise
 
 
 BOT_ID = os.environ.get('BOT_ID')
@@ -13,7 +14,7 @@ def handle_command(command, channel):
         are valid commands. If so, then acts on the commands. If not,
         returns back what it needs for clarification.
     '''
-    commands = ['docs', 'fightme']
+    commands = ['docs', 'fightme', 'praise']
     response = 'Try one of {}.'.format(commands)
 
     tokens = command.split(' ')
@@ -33,8 +34,10 @@ def handle_command(command, channel):
                 response = 'RTFM: {}'.format(docs_dict[docs_for])
             else:
                 response = 'Sorry, that library is currently not supported. Try one of {}.'.format(list(docs_dict.keys()))
-        if command == 'fightme':
+        elif command == 'fightme':
             response = 'http://i.imgur.com/Skqd8Rf.jpg'
+        elif command == 'praise':
+            response = praise.praise()
 
     slack_client.api_call("chat.postMessage", channel=channel,
                           text=response, as_user=True)
