@@ -32,7 +32,7 @@ def handle_command(command, channel):
             if docs_for in docs_dict.keys():
                 response = 'RTFM: {}'.format(docs_dict[docs_for])
             else:
-                response = 'Sorry, that library is currently not supported.'
+                response = 'Sorry, that library is currently not supported. Try one of {}.'.format(list(docs_dict.keys()))
         if command == 'fightme':
             response = 'http://i.imgur.com/Skqd8Rf.jpg'
 
