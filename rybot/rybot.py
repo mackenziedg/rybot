@@ -55,6 +55,10 @@ class Rybot:
         username = self.userid_to_name(userid)
         tokens = command.split(' ')
         command = tokens[0]
+
+        # Pretends to be typing while we wait to respond
+
+        self.slack_client.server.send_to_websocket({"id": 1, "type": "typing", "channel": channel})
         if command in self.commands.keys():    
             args = ' '.join(tokens[1:]).lower()
             response = self.commands[command](username, args)
