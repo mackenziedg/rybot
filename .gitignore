@@ -1,3 +1,7 @@
+*.pyc
+*#
+*~
+
 data/raw/
 rybot_env/
 export_keys
