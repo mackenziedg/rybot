@@ -6,3 +6,4 @@ data/raw/
 rybot_env/
 export_keys
 aws/
+notebooks/.ipynb_checkpoints/
