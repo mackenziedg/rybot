@@ -7,88 +7,135 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Flatten
 from keras.layers.embeddings import Embedding
-from keras.preprocessing import sequence
-from keras.utils import np_utils
-from keras.wrappers.scikit_learn import KerasClassifier
 
-from sklearn.preprocessing import LabelEncoder, LabelBinarizer
-from sklearn.model_selection import train_test_split, KFold, cross_val_score
+from sklearn.preprocessing import LabelBinarizer
 
 import tensorflow as tf
 
-# fix random seed for reproducibility
-np.random.seed(1)
-print("Reading in Questions.csv")
-q = pd.read_csv("../data/Questions.csv", encoding='latin1')
-print("Reading in Tags.csv")
-t = pd.read_csv("../data/Tags.csv", encoding='latin1')
-print("Done reading in files.")
 
-titles = q.Title.str.split()
+def create_embedding_map(q):
+    """Creates a map of words to integers
 
-# Convert the words to a naive embedding
-print("Embedding words")
-q_embeddings = set()
+    Parameters
+    ----------
+    q -- Pandas DataFrame of questions with at least a `Title` field
+    
+    Returns
+    -------
+    q_embeddings -- dict() mapping words to integers
+    """
 
-for title in titles:
-    for word in title:
-        q_embeddings.add(word.lower())
+    titles = q.Title.str.split()
+    # Convert the words to a naive embedding
+    print("Embedding words")
+    q_embeddings = set()
 
-q_embeddings = dict(zip(q_embeddings, count()))
-q.Title = q.Title.map(lambda x: [q_embeddings[word.lower()] for word in x.split()])
+    for title in titles:
+        for word in title:
+            q_embeddings.add(word.lower())
 
-print("Padding titles")
-# Pad the titles to the same length
-max_title_len = q.Title.apply(len).max()
+    q_embeddings = dict(zip(q_embeddings, count()))
 
-q.Title = [np.concatenate([np.zeros(max_title_len - len(title)), title]) for title in q.Title]
+    return q_embeddings
 
-# There's definitely a better way to do this but whatever
-# This is really bad though
 
-print("Combining questions and tags")
-t = t.groupby('Id').first()
+def generate_embeddings(q, t):
+    """Converts questions and associated tags into integer vectors
+    
+    Parameters
+    ----------
+    q -- Pandas DataFrame of questions with at least `Id` and `Title` fields 
+    t -- Pandas DataFrame of tags with at least `Id` and `Title` fields
+    
+    Returns
+    -------
+    q -- Pandas Dataframe of questions embedded into vectors and their first associated tag with fields `Id`, `Title`, and `Tag`
+    l -- Length of each vector
+    m -- Total number of distinct integers
+    """ 
 
-q = q.join(t, on='Id', rsuffix='t_')
-q = q[~q.Tag.isna()]
+    titles = q.Title.str.split()
+    # Convert the words to a naive embedding
+    print("Embedding words")
+    q_embeddings = set()
 
-print("Splitting data")
-# Split into training and testing data
-train, test = train_test_split(q, train_size=0.7)
+    for title in titles:
+        for word in title:
+            q_embeddings.add(word.lower())
 
-X_train = train.Title
-X_test = test.Title
+    q_embeddings = dict(zip(q_embeddings, count()))
+    q.Title = q.Title.map(lambda x: [q_embeddings[word.lower()] for word in x.split()])
 
-y_train = train.Tag
-y_test = test.Tag
+    print("Padding titles")
+    # Pad the titles to the same length
+    max_title_len = q.Title.apply(len).max()
 
-# Now we actually create the model
+    q.Title = [np.concatenate([np.zeros(max_title_len - len(title)), title]) for title in q.Title]
 
-print("Fitting Tag binarizer")
-lb = LabelBinarizer()
-lb.fit(q.Tag.unique())
+    # There's definitely a better way to do this but whatever
+    # This is really bad though
 
-def baseline_model(input_length=max_title_len, n_words=max(q_embeddings.values()),
-                   embedding_vector_length=32, n_tags=9388):
+    print("Combining questions and tags")
+    t = t.groupby('Id').first()
+
+    q = q.join(t, on='Id', rsuffix='t_')
+    q = q[~q.Tag.isna()]
+
+    q = q[['Id', 'Title', 'Tag']]
+
+    return q, max_title_len, max(q.embeddings.values)
+
+
+def baseline_model(input_length, n_words, embedding_vector_length=32):
+    n_tags = 9388
     model = Sequential()
     model.add(Embedding(n_words, embedding_vector_length, input_length=input_length))
     model.add(Dense(20, input_dim=embedding_vector_length, activation='relu'))
-    model.add(Dense(20, input_dim=20, activation='relu'))
+    model.add(LSTM(n_tags, activation='tanh'))
+    model.add(Dense(n_tags, input_dim=embedding_vector_length, activation='relu'))
     model.add(Flatten())
     model.add(Dense(n_tags, activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     return model
 
-with tf.device('/gpu:0'):
-    print("Building model")
-    model = baseline_model()
-    checkpointer = ModelCheckpoint(filepath='model2.hdf5', verbose=1,
-                                   save_best_only=True)
-    model.fit(np.array(X_train.tolist()), lb.transform(y_train),
-              validation_data=(np.array(X_test.tolist()),
-                               lb.transform(y_test)),
-              epochs=5, batch_size=25, callbacks=[checkpointer])
-    print("Saving model")
-    model.save("./model2.hdf5")
-print("Finshed!")
+
+def main():
+    # fix random seed for reproducibility
+    np.random.seed(1)
+    print("Reading in Questions.csv")
+    q = pd.read_csv("../data/Questions.csv", encoding='latin1')
+    print("Reading in Tags.csv")
+    t = pd.read_csv("../data/Tags.csv", encoding='latin1')
+    print("Done reading in files.")
+
+    q, l, m = generate_embeddings(q, t)
+    
+    print("Splitting data")
+    # Split into training and testing data
+    train, test = train_test_split(q, train_size=0.7)
+
+    X_train = np.array(train.Title.tolist())
+    X_test = np.array(test.Title.tolist())
+
+    y_train = train.Tag
+    y_test = test.Tag
+
+    # Now we actually create the model
+    print("Fitting Tag binarizer")
+    lb = LabelBinarizer()
+    lb.fit(q.Tag.unique())
+
+    y_train = lb.transform(y_train)
+    y_test = lb.transform(y_test)
+
+    with tf.device('/gpu:0'):
+        print("Building model")
+        model = baseline_model(input_length=l, n_words=m)
+        checkpointer = ModelCheckpoint(filepath='model2.hdf5', verbose=1, save_best_only=True)
+        
+        model.fit(X_train, y_train, validation_data=(X_test, y_test),
+                epochs=5, batch_size=25, callbacks=[checkpointer])
+        print("Saving model")
+        model.save("./model2.hdf5")
+    print("Finshed!")
