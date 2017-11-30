@@ -3,6 +3,7 @@ from itertools import count
 import numpy as np
 import pandas as pd
 
+from keras.callbacks import ModelCheckpoint
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Flatten
 from keras.layers.embeddings import Embedding
@@ -17,12 +18,10 @@ import tensorflow as tf
 
 # fix random seed for reproducibility
 np.random.seed(1)
-# q = pd.read_csv("./data/Questions.csv", encoding='latin1')
-# t = pd.read_csv("./data/Tags.csv", encoding='latin1')
 print("Reading in Questions.csv")
-q = pd.read_csv("../../stackoverflow-nlp/stacksample/Questions.csv", encoding='latin1')
+q = pd.read_csv("../data/Questions.csv", encoding='latin1')
 print("Reading in Tags.csv")
-t = pd.read_csv("../../stackoverflow-nlp/stacksample/Tags.csv", encoding='latin1')
+t = pd.read_csv("../data/Tags.csv", encoding='latin1')
 print("Done reading in files.")
 
 titles = q.Title.str.split()
@@ -73,16 +72,23 @@ def baseline_model(input_length=max_title_len, n_words=max(q_embeddings.values()
                    embedding_vector_length=32, n_tags=9388):
     model = Sequential()
     model.add(Embedding(n_words, embedding_vector_length, input_length=input_length))
-    model.add(Dense(10, input_dim=embedding_vector_length, activation='relu'))
+    model.add(Dense(20, input_dim=embedding_vector_length, activation='relu'))
+    model.add(Dense(20, input_dim=20, activation='relu'))
     model.add(Flatten())
     model.add(Dense(n_tags, activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    
+
     return model
 
 with tf.device('/gpu:0'):
     print("Building model")
     model = baseline_model()
-    model.fit(np.array(X_train.tolist()), lb.transform(y_train), epochs=10, batch_size=10)
+    checkpointer = ModelCheckpoint(filepath='model2.hdf5', verbose=1,
+                                   save_best_only=True)
+    model.fit(np.array(X_train.tolist()), lb.transform(y_train),
+              validation_data=(np.array(X_test.tolist()),
+                               lb.transform(y_test)),
+              epochs=5, batch_size=25, callbacks=[checkpointer])
     print("Saving model")
-    model.save("./model1")
+    model.save("./model2.hdf5")
+print("Finshed!")
