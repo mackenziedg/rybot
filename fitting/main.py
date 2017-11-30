@@ -5,10 +5,11 @@ import pandas as pd
 
 from keras.callbacks import ModelCheckpoint
 from keras.models import Sequential
-from keras.layers import Dense, LSTM, Flatten
+from keras.layers import Dense, Dropout, LSTM, Flatten
 from keras.layers.embeddings import Embedding
 
 from sklearn.preprocessing import LabelBinarizer
+from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
 
@@ -83,18 +84,23 @@ def generate_embeddings(q, t):
 
     q = q[['Id', 'Title', 'Tag']]
 
-    return q, max_title_len, max(q.embeddings.values)
+    return q, max_title_len, max(q_embeddings.values())
 
 
 def baseline_model(input_length, n_words, embedding_vector_length=32):
     n_tags = 9388
+    print("Adding layers")
     model = Sequential()
+    print("Adding Embedding layer")
     model.add(Embedding(n_words, embedding_vector_length, input_length=input_length))
-    model.add(Dense(20, input_dim=embedding_vector_length, activation='relu'))
-    model.add(LSTM(n_tags, activation='tanh'))
+    print("Adding LSTM layer")
+    model.add(LSTM(int(input_length/2), activation='tanh'))
     model.add(Dense(n_tags, input_dim=embedding_vector_length, activation='relu'))
-    model.add(Flatten())
+    model.add(Dropout(0.5))
+    # print("Adding Flatten layer")
+    # model.add(Flatten())
     model.add(Dense(n_tags, activation='softmax'))
+    print("Compiling model")
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     return model
@@ -110,7 +116,7 @@ def main():
     print("Done reading in files.")
 
     q, l, m = generate_embeddings(q, t)
-    
+ 
     print("Splitting data")
     # Split into training and testing data
     train, test = train_test_split(q, train_size=0.7)
@@ -132,10 +138,13 @@ def main():
     with tf.device('/gpu:0'):
         print("Building model")
         model = baseline_model(input_length=l, n_words=m)
-        checkpointer = ModelCheckpoint(filepath='model2.hdf5', verbose=1, save_best_only=True)
-        
+        checkpointer = ModelCheckpoint(filepath='model3.hdf5', verbose=1, save_best_only=True)
+
         model.fit(X_train, y_train, validation_data=(X_test, y_test),
                 epochs=5, batch_size=25, callbacks=[checkpointer])
         print("Saving model")
-        model.save("./model2.hdf5")
+        model.save("./model3.hdf5")
     print("Finshed!")
+
+if __name__ == '__main__':
+    main()
