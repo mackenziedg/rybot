@@ -8,8 +8,11 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, LSTM, Flatten
 from keras.layers.embeddings import Embedding
 
+import pickle
+
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
+from sklearn.utils import class_weight
 
 import tensorflow as tf
 
@@ -131,19 +134,25 @@ def main():
     print("Fitting Tag binarizer")
     lb = LabelBinarizer()
     lb.fit(q.Tag.unique())
+    with open("./lb.pickle", 'wb') as f:
+        pickle.dump(lb, f)
 
+    class_weight_dict = class_weight.compute_class_weight('balanced',
+                                                          np.unique(y_train),
+                                                          y_train)
     y_train = lb.transform(y_train)
     y_test = lb.transform(y_test)
 
     with tf.device('/gpu:0'):
         print("Building model")
         model = baseline_model(input_length=l, n_words=m)
-        checkpointer = ModelCheckpoint(filepath='model3.hdf5', verbose=1, save_best_only=True)
+        checkpointer = ModelCheckpoint(filepath='model4.hdf5', verbose=1, save_best_only=True)
 
         model.fit(X_train, y_train, validation_data=(X_test, y_test),
-                epochs=5, batch_size=25, callbacks=[checkpointer])
+                epochs=5, batch_size=25, callbacks=[checkpointer],
+                  class_weight=class_weight_dict)
         print("Saving model")
-        model.save("./model3.hdf5")
+        model.save("./model4.hdf5")
     print("Finshed!")
 
 if __name__ == '__main__':
