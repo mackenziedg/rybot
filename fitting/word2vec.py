@@ -4,8 +4,6 @@ import numpy as np
 import pandas as pd
 import re
 
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
-                    level=logging.INFO)
 
 class Sentences:
     def __init__(self, body):
@@ -18,9 +16,9 @@ class Sentences:
         ----------
         body -- A pandas Series of text strings
         
-        Returns
+        Yields
         -------
-        proc -- Yields a processed string to list of words
+        proc -- A list of words
         """
 
         for b in self.bodys:
@@ -30,12 +28,21 @@ class Sentences:
             yield b
 
 
-print("Reading in questions", flush=True)
-q = pd.read_csv('../data/Questions.csv', usecols=['Id', 'Body'], encoding='latin1')
-s = Sentences(q.Body)
+def main():
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
+                        level=logging.INFO)
 
-print("Beginning model fitting", flush=True)
-model = gensim.models.Word2Vec(sentences=s, min_count=1, workers=4)
-print("Finished fitting", flush=True)
+    # Have to flush the print statement if running with `tee`
+    print("Reading in questions", flush=True)
+    q = pd.read_csv('../data/Questions.csv', usecols=['Id', 'Body'], encoding='latin1')
+    s = Sentences(q.Body)
 
-model.save("./word2vec_model")
+    print("Beginning model fitting", flush=True)
+    model = gensim.models.Word2Vec(sentences=s, min_count=1, workers=4)
+    print("Finished fitting", flush=True)
+
+    model.save("./word2vec_model")
+
+
+if __name__ == '__main__':
+    main()
