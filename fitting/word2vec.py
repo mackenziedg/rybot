@@ -38,10 +38,14 @@ def main():
     s = Sentences(q.Body)
 
     print("Beginning model fitting", flush=True)
-    model = gensim.models.Word2Vec(sentences=s, min_count=1, workers=4)
+    model = gensim.models.Word2Vec(sentences=s, min_count=5, window=4, workers=4)
     print("Finished fitting", flush=True)
 
+    print("Saving model object", flush=True)
     model.save("./word2vec_model")
+    print("Saving raw vectors", flush=True)
+    model.wv.save_word2vec_format("./word2vec_wv.txt")
+    print("Finished.", flush=True)
 
 
 if __name__ == '__main__':
