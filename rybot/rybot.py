@@ -3,6 +3,7 @@ import os
 from random import choice
 import time
 from slackclient import SlackClient
+from doc_matching import DocumentFinder
 import praise
 
 
@@ -18,12 +19,17 @@ class Rybot:
         self.slack_client = SlackClient(self.slack_bot_token)
 
         # Must come after the command definitions
-        self.commands = {'docs': self.get_docs, 'fightme': self.get_donger, 'praise': self.praise}
+        self.commands = {'docs': self.get_docs,
+                         'fightme': self.get_donger,
+                         'praise': self.praise,
+                         'so': self.get_stackoverflow}
+
+        self.doc_finder = DocumentFinder()
         self.read_websocket_delay = 1  # 1 second delay between reading from firehose
 
     def start(self):
         """Connect to the Slack channel and begin reading posts.
-        
+
         Raises
         ------
         ValueError
@@ -59,7 +65,7 @@ class Rybot:
         # Pretends to be typing while we wait to respond
 
         self.slack_client.server.send_to_websocket({"id": 1, "type": "typing", "channel": channel})
-        if command in self.commands.keys():    
+        if command in self.commands.keys():
             args = ' '.join(tokens[1:]).lower()
             response = self.commands[command](username, args)
         if response is None:
@@ -102,10 +108,10 @@ class Rybot:
         """
         response = self.slack_client.api_call("users.info", user=userid)
         return response.get('user', None).get('profile', None).get('first_name', None)
-        
+
     def praise(self, name, args):
         """A wrapper for the praise() function which adds the user's listed first name to the praise.
-        
+
         Parameters
         ----------
         name : string
@@ -164,7 +170,7 @@ class Rybot:
             User name requesting a fight
         args : string
             Any additional arguments (not used)
-        
+
         Returns
         -------
         donger : string
@@ -178,7 +184,22 @@ class Rybot:
             '༼ง=ಠ益ಠ=༽ง'
         ]
         return choice(dongers)
-    
+
+    def get_stackoverflow(self, name, args):
+        """Returns a url and title for the most similar StackOverflow question
+        Parameters
+        ----------
+        name : string
+            User name requesting a SO search
+        args : string
+            Any additional arguments
+
+        Returns
+        -------
+        url -- The url of the closest question
+        string -- The title of the closest question
+        """
+        return self.doc_finder.get_closest(args)
 
 if __name__ == '__main__':
     ryb = Rybot()

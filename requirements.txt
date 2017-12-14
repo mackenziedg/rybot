@@ -1,3 +1,4 @@
+backports-abc==0.5
 bleach==1.5.0
 boto==2.48.0
 boto3==1.4.8
@@ -10,10 +11,12 @@ cytoolz==0.8.2
 decorator==4.1.2
 dill==0.2.7.1
 docutils==0.14
+en-core-web-sm==2.0.0
 entrypoints==0.2.3
 enum34==1.1.6
 ftfy==4.4.3
 gensim==3.1.0
+h5py==2.7.1
 html5lib==0.9999999
 idna==2.6
 ipykernel==4.6.1
@@ -48,6 +51,7 @@ preshed==1.0.0
 prompt-toolkit==1.0.15
 protobuf==3.5.0.post1
 ptyprocess==0.5.2
+pyemd==0.4.4
 Pygments==2.2.0
 python-dateutil==2.6.1
 pytz==2017.3
@@ -63,7 +67,9 @@ six==1.11.0
 sklearn==0.0
 slackclient==1.0.9
 smart-open==1.5.4
+spacy==2.0.4
 tensorflow==1.4.0
+tensorflow-gpu==1.4.0
 tensorflow-tensorboard==0.4.0rc3
 termcolor==1.1.0
 terminado==0.8.1
@@ -73,6 +79,7 @@ toolz==0.8.2
 tornado==4.5.2
 tqdm==4.19.4
 traitlets==4.3.2
+typing==3.6.2
 ujson==1.35
 urllib3==1.22
 wcwidth==0.1.7
