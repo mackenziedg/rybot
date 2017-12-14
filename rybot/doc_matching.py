@@ -7,7 +7,9 @@ import re
 class DocumentFinder:
 
     def __init__(self):
+        print("Loading questions")
         self.docs = self.load_questions()
+        print("Loading model")
         self.model = self.load_model()
 
     def load_questions(self):

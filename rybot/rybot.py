@@ -17,6 +17,7 @@ class Rybot:
 
         self.at_bot = '<@' + self.bot_id + '>'
         self.slack_client = SlackClient(self.slack_bot_token)
+        print("Rybot connected!")
 
         # Must come after the command definitions
         self.commands = {'docs': self.get_docs,
@@ -24,7 +25,9 @@ class Rybot:
                          'praise': self.praise,
                          'so': self.get_stackoverflow}
 
+        print("Setting up stackoverflow searching")
         self.doc_finder = DocumentFinder()
+        print("Done!")
         self.read_websocket_delay = 1  # 1 second delay between reading from firehose
 
     def start(self):
